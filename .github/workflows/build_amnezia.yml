@@ -1,4 +1,4 @@
-name: Build AmneziaWG kmod (NanoPi R76S, Kernel 6.1.141)
+name: Build AmneziaWG kmod for NanoPi R76S
 
 on:
   workflow_dispatch:
@@ -8,23 +8,23 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout FriendlyWrt
+    - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install build dependencies
       run: |
         sudo apt update
-        sudo apt install -y git build-essential gawk gettext unzip file \
-        libssl-dev python3-pyelftools python3-setuptools swig flex bison
+        sudo apt install -y git build-essential gawk gettext unzip file libssl-dev \
+        python3-pyelftools python3-setuptools swig flex bison
 
     - name: Install repo tool
       run: |
         git clone https://github.com/friendlyarm/repo.git /tmp/repo
-        sudo install -m 755 /tmp/repo/repo /usr/local/bin/repo
+        sudo install -m 755 /tmp/repo/repo /usr/local/bin/repo    
 
-    - name: Setup FriendlyWrt source
+    - name: Clone FriendlyWrt 24.10 (rk3576)
       run: |
-        mkdir -p project
+        mkdir project
         cd project
         repo init --depth=1 \
           -u https://github.com/friendlyarm/friendlywrt_manifests \
@@ -39,19 +39,19 @@ jobs:
         repo sync -c scripts
         repo sync -c toolchain
 
-    - name: Add AmneziaWG packages
+    - name: Add AmneziaWG tools feed
       run: |
         cd project/friendlywrt
-        # user-space tools
         echo "src-git amnezia https://github.com/amnezia-vpn/amneziawg-openwrt" >> feeds.conf.default
         ./scripts/feeds update -i -a -f
         ./scripts/feeds install -a -p amnezia
 
-        # kernel module
-        cd package
+    - name: Add AmneziaWG kernel module
+      run: |
+        cd project/friendlywrt/package
         git clone https://github.com/amnezia-vpn/amneziawg-kmod.git amneziawg-kmod
 
-    - name: Configure build (only AmneziaWG)
+    - name: Configure build (ONLY AmneziaWG)
       run: |
         cd project/friendlywrt
         cat > .config <<EOF
@@ -63,13 +63,17 @@ jobs:
         EOF
         make defconfig
 
-    - name: Build minimal toolchain & kernel headers
+    - name: Build toolchain
       run: |
         cd project/friendlywrt
         make toolchain/install -j$(nproc)
+
+    - name: Prepare kernel 6.1.141
+      run: |
+        cd project/friendlywrt
         make target/linux/prepare
 
-    - name: Compile AmneziaWG packages
+    - name: Build AmneziaWG packages
       run: |
         cd project/friendlywrt
         make package/kmod-amneziawg/compile -j$(nproc) V=s
