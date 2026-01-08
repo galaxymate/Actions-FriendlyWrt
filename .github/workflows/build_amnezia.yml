@@ -58,10 +58,10 @@ jobs:
         EOF
         make defconfig
 
-    - name: Build toolchain
-      run: |
-        cd project/friendlywrt
-        make toolchain/install -j$(nproc)
+    #- name: Build toolchain
+    #  run: |
+    #    cd project/friendlywrt
+    #    make toolchain/install -j$(nproc)
 
     - name: Prepare kernel 6.1.141
       run: |
