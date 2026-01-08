@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout
+    - name: Checkout this repo
       uses: actions/checkout@v4
 
     - name: Install build dependencies
@@ -20,7 +20,13 @@ jobs:
           python3-pyelftools python3-setuptools rsync unzip zlib1g-dev \
           swig file wget
 
-    - name: Init FriendlyWrt
+    - name: Clone FriendlyWrt sources
+      run: |
+        mkdir -p project
+        cd project
+        git clone --branch friendlywrt-24.10-k6.1 https://github.com/friendlyarm/friendlywrt.git friendlywrt
+
+    - name: Init feeds
       run: |
         cd project/friendlywrt
         ./scripts/feeds update -a
@@ -42,7 +48,7 @@ jobs:
 
         make defconfig
 
-    - name: Build toolchain (once)
+    - name: Build toolchain
       run: |
         cd project/friendlywrt
         make toolchain/install -j$(nproc)
