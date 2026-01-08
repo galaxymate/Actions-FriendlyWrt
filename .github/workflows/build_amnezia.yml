@@ -24,7 +24,7 @@ jobs:
       run: |
         mkdir -p project
         cd project
-        git clone --branch friendlywrt-24.10-k6.1 https://github.com/friendlyarm/friendlywrt.git friendlywrt
+        git clone https://github.com/friendlyarm/friendlywrt.git friendlywrt
 
     - name: Init feeds
       run: |
