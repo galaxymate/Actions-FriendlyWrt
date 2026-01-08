@@ -1,0 +1,73 @@
+name: Build AmneziaWG for NanoPi R76S
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Prepare build environment
+      run: |
+        sudo apt update
+        sudo apt install -y git build-essential gawk gettext unzip file libssl-dev
+
+        git clone https://github.com/friendlyarm/repo
+        sudo cp repo/repo /usr/bin/
+
+    - name: Sync FriendlyWrt 24.10 (rk3576)
+      run: |
+        mkdir project
+        cd project
+
+        repo init --depth=1 \
+          -u https://github.com/friendlyarm/friendlywrt_manifests \
+          -b master-v24.10 \
+          -m rk3576.xml \
+          --repo-url=https://github.com/friendlyarm/repo \
+          --no-clone-bundle
+
+        repo sync -c friendlywrt
+        repo sync -c configs
+        repo sync -c device/common
+        repo sync -c device/friendlyelec
+        repo sync -c scripts
+        repo sync -c toolchain
+
+    - name: Add AmneziaWG feed
+      run: |
+        cd project/friendlywrt
+        echo "src-git amnezia https://github.com/amnezia-vpn/amneziawg-openwrt" >> feeds.conf.default
+        ./scripts/feeds update amnezia
+        ./scripts/feeds install -a -p amnezia
+
+    - name: Configure build (ONLY AmneziaWG)
+      run: |
+        cd project/friendlywrt
+
+        cat >> .config <<EOF
+        CONFIG_TARGET_rockchip=y
+        CONFIG_TARGET_rockchip_armv8=y
+        CONFIG_PACKAGE_kmod-amneziawg=m
+        CONFIG_PACKAGE_amneziawg-tools=y
+        EOF
+
+        make defconfig
+
+    - name: Build AmneziaWG packages
+      run: |
+        cd project/friendlywrt
+        make package/kmod-amneziawg/compile -j$(nproc) V=s
+        make package/amneziawg-tools/compile -j$(nproc) V=s
+
+    - name: Upload IPK packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: amneziawg-r76s
+        path: |
+          project/friendlywrt/bin/targets/rockchip/armv8/packages/kmod-amneziawg*.ipk
+          project/friendlywrt/bin/packages/aarch64_generic/amneziawg-tools*.ipk
