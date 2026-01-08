@@ -17,6 +17,11 @@ jobs:
         sudo apt install -y git build-essential gawk gettext unzip file \
         libssl-dev python3-pyelftools python3-setuptools swig flex bison
 
+    - name: Install repo tool
+      run: |
+        git clone https://github.com/friendlyarm/repo.git /tmp/repo
+        sudo install -m 755 /tmp/repo/repo /usr/local/bin/repo
+
     - name: Setup FriendlyWrt source
       run: |
         mkdir -p project
