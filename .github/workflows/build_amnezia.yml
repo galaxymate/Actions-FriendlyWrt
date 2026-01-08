@@ -53,15 +53,10 @@ jobs:
         CONFIG_TARGET_rockchip=y
         CONFIG_TARGET_rockchip_armv8=y
         CONFIG_TARGET_rockchip_armv8_DEVICE_friendlyarm_nanopi-r76s=y
-        CONFIG_PACKAGE_kmod-amneziawg=m
+        CONFIG_PACKAGE_kmod-amneziawg=y
         CONFIG_PACKAGE_amneziawg-tools=y
         EOF
         make defconfig
-
-    #- name: Build toolchain
-    #  run: |
-    #    cd project/friendlywrt
-    #    make toolchain/install -j$(nproc)
 
     - name: Prepare kernel 6.1.141
       run: |
