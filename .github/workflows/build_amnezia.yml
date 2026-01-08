@@ -8,16 +8,16 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Prepare build environment
+    - name: Install build dependencies
       run: |
         sudo apt update
         sudo apt install -y git build-essential gawk gettext unzip file libssl-dev \
-        python3-pyelftools python3-setuptools \
-        swig
+        python3-pyelftools python3-setuptools swig wget bc
 
+        # Install repo tool
         git clone https://github.com/friendlyarm/repo
         sudo cp repo/repo /usr/bin/
 
@@ -25,14 +25,12 @@ jobs:
       run: |
         mkdir project
         cd project
-
         repo init --depth=1 \
           -u https://github.com/friendlyarm/friendlywrt_manifests \
           -b master-v24.10 \
           -m rk3576.xml \
           --repo-url=https://github.com/friendlyarm/repo \
           --no-clone-bundle
-
         repo sync -c friendlywrt
         repo sync -c configs
         repo sync -c device/common
@@ -44,29 +42,35 @@ jobs:
       run: |
         cd project/friendlywrt
         echo "src-git amnezia https://github.com/amnezia-vpn/amneziawg-openwrt" >> feeds.conf.default
-        ./scripts/feeds update amnezia
+        ./scripts/feeds update -i -a -f
         ./scripts/feeds install -a -p amnezia
 
-    - name: Configure build (ONLY AmneziaWG)
+    - name: Configure build (NanoPi R76S, Kernel 6.1)
       run: |
         cd project/friendlywrt
-
-        cat >> .config <<EOF
+        cat > .config <<EOF
         CONFIG_TARGET_rockchip=y
         CONFIG_TARGET_rockchip_armv8=y
+        CONFIG_TARGET_rockchip_armv8_DEVICE_friendlyarm_nanopi-r76s=y
+        CONFIG_KERNEL_PATCHVER=6.1
         CONFIG_PACKAGE_kmod-amneziawg=m
         CONFIG_PACKAGE_amneziawg-tools=y
         EOF
 
         make defconfig
 
-    - name: Build AmneziaWG packages
+    - name: Prepare kernel 6.1
+      run: |
+        cd project/friendlywrt
+        make target/linux/prepare
+
+    - name: Build AmneziaWG packages only
       run: |
         cd project/friendlywrt
         make package/kmod-amneziawg/compile -j$(nproc) V=s
         make package/amneziawg-tools/compile -j$(nproc) V=s
 
-    - name: Upload IPK packages
+    - name: Upload IPK artifacts
       uses: actions/upload-artifact@v4
       with:
         name: amneziawg-r76s
