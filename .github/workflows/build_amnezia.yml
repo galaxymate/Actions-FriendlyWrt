@@ -46,11 +46,6 @@ jobs:
         ./scripts/feeds update -i -a -f
         ./scripts/feeds install -a -p amnezia
 
-    - name: Add AmneziaWG kernel module
-      run: |
-        cd project/friendlywrt/package
-        git clone https://github.com/amnezia-vpn/amneziawg-kmod.git amneziawg-kmod
-
     - name: Configure build (ONLY AmneziaWG)
       run: |
         cd project/friendlywrt
